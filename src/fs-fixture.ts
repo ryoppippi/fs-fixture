@@ -162,7 +162,7 @@ export class FsFixture {
 	 */
 	readFile: typeof fs.readFile = ((
 		filePath: string,
-		options?,
+		options?: Parameters<typeof fs.readFile>[1],
 	) => this.fs.readFile(
 		this.getPath(filePath),
 		options as any, // eslint-disable-line @typescript-eslint/no-explicit-any

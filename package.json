@@ -60,13 +60,13 @@
 	},
 	"devDependencies": {
 		"@platformatic/vfs": "^0.4.0",
-		"@types/node": "^24.11.2",
+		"@types/node": "^26.4.0",
 		"clean-pkg-json": "^2.0.0",
-		"lintroll": "^1.30.0",
+		"lintroll": "^1.31.1",
 		"manten": "^2.0.2",
 		"pkgroll": "^2.28.1",
 		"skills-npm": "^1.2.0",
 		"tsx": "^4.23.13",
-		"typescript": "^5.9.3"
+		"typescript": "^6.0.3"
 	}
 }
