@@ -61,12 +61,12 @@
 	"devDependencies": {
 		"@platformatic/vfs": "^0.4.0",
 		"@types/node": "^24.11.2",
-		"clean-pkg-json": "^1.3.0",
+		"clean-pkg-json": "^2.0.0",
 		"lintroll": "^1.30.0",
 		"manten": "^2.0.2",
-		"pkgroll": "^2.27.0",
+		"pkgroll": "^2.28.1",
 		"skills-npm": "^1.2.0",
-		"tsx": "^4.21.0",
+		"tsx": "^4.23.13",
 		"typescript": "^5.9.3"
 	}
 }
