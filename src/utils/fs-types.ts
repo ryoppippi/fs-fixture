@@ -1,3 +1,5 @@
+import type { CopyOptions } from 'node:fs';
+
 /**
  * A subset of `fs/promises` methods used by FsFixture.
  * Compatible with Node.js `fs/promises`, `@platformatic/vfs`,
@@ -52,7 +54,7 @@ export type FsPromises = {
 	cp?(
 		source: string,
 		destination: string,
-		options?: { recursive?: boolean },
+		options?: Pick<CopyOptions, 'filter' | 'recursive'>,
 	): Promise<void>;
 	mkdtemp?(prefix: string): Promise<string>;
 };

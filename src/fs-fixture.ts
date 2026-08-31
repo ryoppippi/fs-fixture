@@ -48,9 +48,7 @@ export class FsFixture {
 	 * // => '/tmp/fs-fixture-123/dir/file.txt'
 	 * ```
 	 */
-	getPath(...subpaths: string[]) {
-		return path.join(this.path, ...subpaths);
-	}
+	getPath = (...subpaths: string[]) => path.join(this.path, ...subpaths);
 
 	/**
 	 * Check if the fixture exists. Pass in a subpath to check if it exists.
@@ -58,12 +56,10 @@ export class FsFixture {
 	 * @param subpath - Optional subpath to check within the fixture directory
 	 * @returns Promise resolving to true if the path exists, false otherwise
 	 */
-	exists(subpath = '') {
-		return this.fs.access(this.getPath(subpath)).then(
-			() => true,
-			() => false,
-		);
-	}
+	exists = (subpath = '') => this.fs.access(this.getPath(subpath)).then(
+		() => true,
+		() => false,
+	);
 
 	/**
 	 * Delete the fixture directory or a subpath within it.
@@ -72,7 +68,7 @@ export class FsFixture {
 	 *   Defaults to deleting the entire fixture.
 	 * @returns Promise that resolves when deletion is complete
 	 */
-	rm(subpath = '') {
+	rm = (subpath = '') => {
 		const targetPath = this.getPath(subpath);
 		if (this.fs.rm) {
 			return this.fs.rm(targetPath, {
@@ -87,7 +83,7 @@ export class FsFixture {
 			this.fs as FsPromises & Required<Pick<FsPromises, 'unlink' | 'rmdir'>>,
 			targetPath,
 		);
-	}
+	};
 
 	/**
 	 * Copy a file or directory into the fixture directory.
@@ -99,11 +95,11 @@ export class FsFixture {
 	 * @param options - Copy options (e.g., recursive, filter)
 	 * @returns Promise that resolves when copy is complete
 	 */
-	cp(
+	cp = (
 		sourcePath: string,
 		destinationSubpath?: string,
 		options?: CopyOptions,
-	) {
+	) => {
 		if (!this.fs.cp) {
 			throw new Error('cp() requires the fs API to support cp()');
 		}
@@ -119,7 +115,7 @@ export class FsFixture {
 			this.getPath(destinationSubpath),
 			options,
 		);
-	}
+	};
 
 	/**
 	 * Create a new folder in the fixture directory (including parent directories).
@@ -127,11 +123,9 @@ export class FsFixture {
 	 * @param folderPath - The folder path to create within the fixture
 	 * @returns Promise that resolves when directory is created
 	 */
-	mkdir(folderPath: string) {
-		return this.fs.mkdir(this.getPath(folderPath), {
-			recursive: true,
-		});
-	}
+	mkdir = (folderPath: string) => this.fs.mkdir(this.getPath(folderPath), {
+		recursive: true,
+	});
 
 	/**
 	 * Move or rename a file or directory within the fixture.
@@ -153,12 +147,10 @@ export class FsFixture {
 	 * await fixture.mv('src', 'lib')
 	 * ```
 	 */
-	mv(sourcePath: string, destinationPath: string) {
-		return this.fs.rename(
-			this.getPath(sourcePath),
-			this.getPath(destinationPath),
-		);
-	}
+	mv = (sourcePath: string, destinationPath: string) => this.fs.rename(
+		this.getPath(sourcePath),
+		this.getPath(destinationPath),
+	);
 
 	/**
 	 * Read a file from the fixture directory.
@@ -223,10 +215,10 @@ export class FsFixture {
 	 * console.log(data.name) // Typed as string
 	 * ```
 	 */
-	async readJson<T = unknown>(filePath: string): Promise<T> {
+	readJson = async <T = unknown>(filePath: string): Promise<T> => {
 		const content = await this.readFile(filePath, 'utf8');
 		return JSON.parse(content) as T;
-	}
+	};
 
 	/**
 	 * Create or overwrite a JSON file in the fixture directory.
@@ -251,12 +243,10 @@ export class FsFixture {
 	 * await fixture.writeJson('config.json', { key: 'value' }, 0)
 	 * ```
 	 */
-	writeJson(filePath: string, json: unknown, space: string | number = 2) {
-		return this.writeFile(
-			filePath,
-			JSON.stringify(json, null, space),
-		);
-	}
+	writeJson = (filePath: string, json: unknown, space: string | number = 2) => this.writeFile(
+		filePath,
+		JSON.stringify(json, null, space),
+	);
 
 	/**
 	 * Resource management cleanup

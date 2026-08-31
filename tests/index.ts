@@ -27,6 +27,80 @@ describe('fs-fixture', () => {
 		expect(await fixture.exists()).toBe(false);
 	});
 
+	test('creates from initializer', async () => {
+		await using fixture = await createFixture(async ({ writeJson }) => {
+			await writeJson('config.json', { enabled: true });
+		});
+
+		expect(await fixture.readJson('config.json')).toStrictEqual({ enabled: true });
+	});
+
+	test('creates files returned by initializer', async () => {
+		await using fixture = await createFixture(async fixture => ({
+			'paths.json': JSON.stringify({
+				fixturePath: fixture.path,
+				filePath: fixture.getPath('paths.json'),
+			}),
+		}));
+
+		expect(await fixture.readJson('paths.json')).toStrictEqual({
+			fixturePath: fixture.path,
+			filePath: fixture.getPath('paths.json'),
+		});
+	});
+
+	test('creates files returned after asynchronous initializer setup', async () => {
+		await using fixture = await createFixture(async (fixture) => {
+			await fixture.mkdir('initialized');
+
+			return {
+				'initialized/file.txt': 'content',
+			};
+		});
+
+		expect(await fixture.readFile('initialized/file.txt', 'utf8')).toBe('content');
+	});
+
+	test('overwrites files created by initializer', async () => {
+		await using fixture = await createFixture(async (fixture) => {
+			await fixture.writeFile('package.json', '{}');
+
+			return {
+				'package.json': JSON.stringify({ name: 'test-package' }),
+			};
+		});
+
+		expect(await fixture.readJson('package.json')).toStrictEqual({ name: 'test-package' });
+	});
+
+	test('cleans up when initializer fails', async () => {
+		let fixturePath = '';
+
+		await expect(createFixture((fixture) => {
+			fixturePath = fixture.path;
+			throw new Error('Initializer failed');
+		})).rejects.toThrow('Initializer failed');
+
+		expect(fixturePath).not.toBe('');
+		await expect(fs.access(fixturePath)).rejects.toThrow();
+	});
+
+	test('cleans up when initializer returned FileTree fails', async () => {
+		let fixturePath = '';
+
+		// @ts-expect-error Testing invalid initializer return
+		await expect(createFixture((fixture) => {
+			fixturePath = fixture.path;
+
+			return {
+				'file.txt': () => undefined,
+			};
+		})).rejects.toThrow(TypeError);
+
+		expect(fixturePath).not.toBe('');
+		await expect(fs.access(fixturePath)).rejects.toThrow();
+	});
+
 	test('creates from JSON', async () => {
 		const fixture = await createFixture({
 			'directory/a': 'a',
@@ -197,6 +271,39 @@ describe('fs-fixture', () => {
 		}
 
 		expect(await fixture.exists()).toBe(false);
+	});
+
+	test('methods can be destructured', async () => {
+		await using fixture = await createFixture({
+			'source.txt': 'content',
+		});
+		const {
+			getPath,
+			exists,
+			rm,
+			cp,
+			mkdir,
+			mv,
+			readFile,
+			readdir,
+			writeFile,
+			readJson,
+			writeJson,
+		} = fixture;
+
+		await mkdir('directory');
+		await writeFile('directory/file.txt', 'content');
+		await writeJson('config.json', { enabled: true });
+		await cp(getPath('source.txt'), 'copy.txt');
+		await mv('copy.txt', 'moved.txt');
+
+		expect(await exists('directory/file.txt')).toBe(true);
+		expect(await readFile('directory/file.txt', 'utf8')).toBe('content');
+		expect(await readJson<{ enabled: boolean }>('config.json')).toStrictEqual({ enabled: true });
+		expect(await readdir('')).toContain('moved.txt');
+
+		await rm();
+		expect(await exists()).toBe(false);
 	});
 
 	test('custom temporary directory', async () => {

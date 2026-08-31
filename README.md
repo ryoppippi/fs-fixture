@@ -88,6 +88,26 @@ const fixture = await createFixture('./test-templates/basic')
 const fixture = await createFixture()
 ```
 
+**From an initializer:**
+```ts
+const fixture = await createFixture(async ({ path, writeJson }) => {
+    await writeJson('package.json', {
+        name: 'test-package'
+    })
+
+    // Test-specific setup that needs the fixture path.
+    await initializeProject(path)
+
+    return {
+        'src/index.js': 'export default 42'
+    }
+})
+```
+
+Prefer a `FileTree` when a fixture only needs files and directories. Use an initializer function when setup is complex, imperative, or ordered, such as initializing a Git repository or running a project setup helper. It keeps that setup with the fixture it configures.
+
+The initializer receives the new fixture before it is returned. It can perform setup directly and optionally return a `FileTree` to create after setup completes. Returned files overwrite regular files created during setup, but the tree does not replace the fixture directory. If setup fails, fs-fixture removes the fixture before it rethrows the error.
+
 ### Working with files
 
 File methods (`readFile`, `writeFile`, `readdir`) inherit their type signatures directly from Node.js `fs/promises`, preserving all overloads and type narrowing behavior.
@@ -149,6 +169,8 @@ const fixture = await createFixture({
     'link.txt': ({ symlink }) => symlink('./target.txt')
 })
 ```
+
+Use a FileTree entry function for isolated dynamic file content. Use an initializer function when setup requires multiple imperative or ordered operations.
 
 **Symlinks:**
 ```ts
@@ -236,7 +258,7 @@ Works with any library that implements the `fs/promises` API shape, including [@
 Creates a temporary fixture directory and returns a `FsFixture` instance.
 
 **Parameters:**
-- `source` (optional): String path to template directory, or `FileTree` object defining the structure
+- `source` (optional): String path to template directory, `FileTree` object defining the structure, or initializer function
 - `options.tempDir` (optional): Custom temp directory. Defaults to `os.tmpdir()`
 - `options.templateFilter` (optional): Filter function when copying from template directory
 - `options.fs` (optional): Custom `fs/promises`-compatible API for virtual filesystem support
@@ -247,6 +269,7 @@ Creates a temporary fixture directory and returns a `FsFixture` instance.
 const fixture = await createFixture()
 const fixture = await createFixture({ 'file.txt': 'content' })
 const fixture = await createFixture('./template-dir')
+const fixture = await createFixture(fixture => ({ 'path.txt': fixture.path }))
 const fixture = await createFixture({}, { tempDir: './custom-temp' })
 ```
 

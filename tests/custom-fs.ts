@@ -24,6 +24,122 @@ describe('custom fs (BYOFS)', () => {
 		expect(await fixture.exists()).toBe(true);
 	});
 
+	test('creates from initializer', async () => {
+		const fs = create(new MemoryProvider()).promises;
+		await using fixture = await createFixture(async (fixture) => {
+			await fixture.mkdir('initialized');
+
+			return {
+				'initialized/file.txt': fixture.path,
+			};
+		}, { fs });
+
+		expect(await fs.readFile(fixture.getPath('initialized/file.txt'), 'utf8')).toBe(fixture.path);
+	});
+
+	test('preserves initializer error when cleanup throws synchronously', async () => {
+		const memoryFs = create(new MemoryProvider()).promises;
+		const {
+			unlink: _unlink,
+			rmdir: _rmdir,
+			...fs
+		} = memoryFs;
+		const initializerError = new Error('Initializer failed');
+		let fixturePath = '';
+
+		try {
+			await expect(createFixture((fixture) => {
+				fixturePath = fixture.path;
+				throw initializerError;
+			}, { fs })).rejects.toBe(initializerError);
+		} finally {
+			await memoryFs.rmdir(fixturePath);
+		}
+	});
+
+	test('waits for FileTree writes before cleanup', async () => {
+		const memoryFs = create(new MemoryProvider()).promises;
+		const delayedWrite = Promise.withResolvers<void>();
+		const writeError = new Error('Write failed');
+		let cleanupStarted = false;
+		let fixturePath = '';
+
+		const fs = {
+			...memoryFs,
+			writeFile: async (...args: Parameters<typeof memoryFs.writeFile>) => {
+				if (String(args[0]).endsWith('fails.txt')) {
+					throw writeError;
+				}
+
+				await delayedWrite.promise;
+				return memoryFs.writeFile(...args);
+			},
+			rmdir: async (...args: Parameters<typeof memoryFs.rmdir>) => {
+				cleanupStarted = true;
+				return memoryFs.rmdir(...args);
+			},
+		};
+
+		const fixtureResult = createFixture((fixture) => {
+			fixturePath = fixture.path;
+
+			return {
+				'fails.txt': 'fails',
+				'pending.txt': 'pending',
+			};
+		}, { fs }).then(
+			() => new Error('Expected fixture creation to fail'),
+			error => error,
+		);
+
+		await new Promise(setImmediate);
+		expect(cleanupStarted).toBe(false);
+
+		delayedWrite.resolve();
+
+		expect(await fixtureResult).toBe(writeError);
+		expect(cleanupStarted).toBe(true);
+		await expect(memoryFs.access(fixturePath)).rejects.toThrow();
+	});
+
+	test('aggregates FileTree write failures', async () => {
+		const memoryFs = create(new MemoryProvider()).promises;
+		const firstError = new Error('First write failed');
+		const secondError = new Error('Second write failed');
+		let fixturePath = '';
+
+		const fs = {
+			...memoryFs,
+			writeFile: async (...args: Parameters<typeof memoryFs.writeFile>) => {
+				if (String(args[0]).endsWith('first.txt')) {
+					throw firstError;
+				}
+
+				if (String(args[0]).endsWith('second.txt')) {
+					throw secondError;
+				}
+
+				return memoryFs.writeFile(...args);
+			},
+		};
+
+		const error = await createFixture((fixture) => {
+			fixturePath = fixture.path;
+
+			return {
+				'first.txt': 'first',
+				'second.txt': 'second',
+			};
+		}, { fs }).then(
+			() => new Error('Expected fixture creation to fail'),
+			rejectionError => rejectionError,
+		);
+
+		expect(error).toBeInstanceOf(AggregateError);
+		expect((error as AggregateError).errors).toStrictEqual([firstError, secondError]);
+		await expect(memoryFs.access(fixturePath)).rejects.toThrow();
+	});
+
 	test('supports readdir', async () => {
 		const fs = create(new MemoryProvider()).promises;
 		await using fixture = await createFixture({

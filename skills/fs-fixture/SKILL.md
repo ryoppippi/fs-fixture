@@ -30,6 +30,7 @@ await using fixture = await createFixture({ 'file.txt': 'content' })
 |--------|----------|
 | `{ path: content }` | Create files from object. Nested objects create directories. |
 | `'./path'` | Copy template directory into fixture |
+| `(fixture) => ...` | Run complex, imperative, or ordered setup and optionally return a FileTree |
 | _(omitted)_ | Empty temporary directory |
 
 | Option | Type | Default | Description |
@@ -92,6 +93,13 @@ Path syntax — these are equivalent:
 
 ## Patterns
 
+### Choosing a source
+
+- Prefer a FileTree for files and directories.
+- Use an initializer function for complex, imperative, or ordered setup, such as initializing a Git repository or running a project setup helper.
+- Return a FileTree from an initializer for declarative files that should be created after setup completes.
+- Use a FileTree entry function for isolated dynamic file content.
+
 ### Symlinks
 ```ts
 const fixture = await createFixture({
@@ -107,6 +115,22 @@ const fixture = await createFixture({
     'info.txt': ({ fixturePath }) => `Root: ${fixturePath}`,
 })
 ```
+
+### Initialization
+```ts
+const fixture = await createFixture(async ({ path, writeJson }) => {
+    await writeJson('package.json', { name: 'test-package' })
+
+    // Test-specific setup that needs the fixture path.
+    await initializeProject(path)
+
+    return {
+        'src/index.js': 'export default 42',
+    }
+})
+```
+
+The initializer receives the fixture before it is returned. It contains setup with the fixture it configures and can return a FileTree to create after setup completes. Returned files overwrite regular files created during setup, but the tree does not replace the fixture directory. If setup fails, fs-fixture removes the fixture before it rethrows the error.
 
 ## Related
 
