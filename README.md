@@ -110,7 +110,7 @@ The initializer receives the new fixture before it is returned. It can perform s
 
 ### Working with files
 
-File methods (`readFile`, `writeFile`, `readdir`) inherit their type signatures directly from Node.js `fs/promises`, preserving all overloads and type narrowing behavior.
+`readFile` and `writeFile` inherit their type signatures directly from Node.js `fs/promises`. `readdir` preserves Node.js overloads and also lists the fixture root when called without a path.
 
 **Read files:**
 ```ts
@@ -143,8 +143,14 @@ const config = await fixture.readJson<Config>('config.json')
 // Create directories
 await fixture.mkdir('nested/folders')
 
+// List fixture root contents
+const rootFiles = await fixture.readdir()
+
 // List directory contents
 const files = await fixture.readdir('src')
+
+// List root entries with options
+const rootEntries = await fixture.readdir('', { withFileTypes: true })
 
 // Copy files into fixture
 await fixture.cp('/path/to/file.txt', 'copied-file.txt')
@@ -158,6 +164,8 @@ if (await fixture.exists('optional-file.txt')) {
     // ...
 }
 ```
+
+Call `readdir()` to list the fixture root. Pass `''` as the path when listing the root with options.
 
 ### Advanced features
 
@@ -286,7 +294,7 @@ const fixture = await createFixture({}, { tempDir: './custom-temp' })
 | `writeFile(path, content)` | Write string or Buffer to file |
 | `readJson<T>(path)` | Read and parse JSON file |
 | `writeJson(path, data, space?)` | Write JSON with optional formatting |
-| `readdir(path, options?)` | List directory contents |
+| `readdir()`, `readdir(path, options?)` | List fixture root or directory contents. Pass `''` for root options. |
 | `mkdir(path)` | Create directory (recursive) |
 | `cp(source, dest?)` | Copy file/directory into fixture |
 | `mv(source, dest)` | Move or rename file/directory |
@@ -313,29 +321,21 @@ type Api = {
 <details>
 <summary><strong>FsPromises</strong></summary>
 
-The subset of `fs/promises` methods that custom filesystem implementations must provide:
+`FsPromises` is the exported contract for custom filesystem implementations:
 
 ```ts
-type FsPromises = {
-    // Required
-    readFile(path: string, options?): Promise<Buffer | string>
-    writeFile(path: string, data: string | Buffer, options?): Promise<void>
-    readdir(path: string, options?): Promise<string[] | Dirent[]>
-    mkdir(path: string, options?): Promise<string | undefined>
-    rename(oldPath: string, newPath: string): Promise<void>
-    access(path: string, mode?: number): Promise<void>
-
-    // Optional
-    rm?(path: string, options?): Promise<void>
-    unlink?(path: string): Promise<void>
-    rmdir?(path: string): Promise<void>
-    symlink?(target: string, path: string, type?: string): Promise<void>
-    cp?(source: string, destination: string, options?): Promise<void>
-    mkdtemp?(prefix: string): Promise<string>
-}
+import type { FsPromises } from 'fs-fixture'
 ```
 
-If `rm` is not available, fs-fixture falls back to recursive removal using `readdir({ withFileTypes })` + `unlink` + `rmdir`. If `mkdtemp` is not available, fixture paths are generated with a counter.
+| Capability | Methods | Requirement |
+|------------|---------|-------------|
+| Core fixture operations | `readFile`, `writeFile`, `readdir`, `mkdir`, `rename`, `access` | Required |
+| Removal | `rm`, or `unlink` and `rmdir` | One removal strategy is required when calling `fixture.rm()` |
+| Symlinks | `symlink` | Required only when a FileTree contains a symlink |
+| Copying | `cp` | Required only when calling `fixture.cp()` |
+| Temporary directories | `mkdtemp` | Optional. fs-fixture generates fixture paths with a counter when omitted. |
+
+The exported type defines the exact overloads and option shapes. `fixture.readdir()` is a fixture convenience method. A custom fs `readdir` always receives the fixture's absolute path.
 </details>
 
 ## Related

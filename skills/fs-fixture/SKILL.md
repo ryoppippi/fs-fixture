@@ -49,7 +49,7 @@ await using fixture = await createFixture({ 'file.txt': 'content' })
 | `writeFile(path, content)` | Write string or Buffer |
 | `readJson<T>(path)` | Read and parse JSON with type parameter |
 | `writeJson(path, data, space?)` | Write JSON (default: 2-space indent, `0` for minified) |
-| `readdir(path, options?)` | List directory (`{ withFileTypes: true }` for Dirent[]) |
+| `readdir()`, `readdir(path, options?)` | List fixture root or directory. Pass `''` for root options. `{ withFileTypes: true }` returns Dirent[]. |
 | `mkdir(path)` | Create directory recursively |
 | `cp(source, dest?)` | Copy external file/directory into fixture |
 | `mv(source, dest)` | Move or rename within fixture |

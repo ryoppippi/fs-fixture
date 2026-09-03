@@ -4,6 +4,8 @@ import path from 'node:path';
 import type { FsPromises } from './utils/fs-types.js';
 import { recursiveRm } from './utils/rm-polyfill.js';
 
+type FixtureReaddir = typeof fs.readdir & (() => Promise<string[]>);
+
 // Polyfill for Node v18
 if (typeof Symbol.asyncDispose !== 'symbol') {
 	Object.defineProperty(Symbol, 'asyncDispose', {
@@ -172,18 +174,19 @@ export class FsFixture {
 	 * Read the contents of a directory in the fixture.
 	 *
 	 * @param directoryPath - The directory path within the fixture to read.
-	 *   Defaults to the fixture root when empty string is passed.
+	 *   Omit it to read the fixture root.
+	 *   Pass an empty string when specifying options for the fixture root.
 	 * @param options - Optional read directory options.
 	 *   Use `{ withFileTypes: true }` to get Dirent objects.
 	 * @returns Promise resolving to array of file/directory names or Dirent objects
 	 */
-	readdir: typeof fs.readdir = ((
-		directoryPath: string,
+	readdir: FixtureReaddir = ((
+		directoryPath?: string,
 		options?,
 	) => this.fs.readdir(
-		this.getPath(directoryPath || ''),
+		this.getPath(directoryPath ?? ''),
 		options as any, // eslint-disable-line @typescript-eslint/no-explicit-any
-	)) as typeof fs.readdir;
+	)) as FixtureReaddir;
 
 	/**
 	 * Create or overwrite a file in the fixture directory.

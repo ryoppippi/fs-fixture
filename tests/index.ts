@@ -164,7 +164,7 @@ describe('fs-fixture', () => {
 		expect(directoryContents).toContain('c');
 		expect(directoryContents).toContain('d');
 
-		const rootContents = await fixture.readdir('');
+		const rootContents = await fixture.readdir();
 		expect(rootContents).toContain('directory');
 		expect(rootContents).toContain('emptyDirectory');
 
@@ -175,11 +175,12 @@ describe('fs-fixture', () => {
 		expect(fileEntry?.isFile()).toBe(true);
 
 		// Type assertions for readdir
-		const stringArray: string[] = await fixture.readdir('');
+		const stringArray: string[] = await fixture.readdir();
 		expect(Array.isArray(stringArray)).toBe(true);
 
-		const direntArray: Dirent[] = await fixture.readdir('.', { withFileTypes: true });
+		const direntArray: Dirent[] = await fixture.readdir('', { withFileTypes: true });
 		expect(Array.isArray(direntArray)).toBe(true);
+		expect(direntArray.find(entry => entry.name === 'directory')?.isDirectory()).toBe(true);
 
 		// rm file
 		await fixture.rm('directory/a');
